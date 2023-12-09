@@ -1,28 +1,29 @@
-import schedule, csv, time
+import csv
+import schedule
+import time
 from easysnmp import Session
 from datetime import datetime
 
 
-def poll(host, com, ver, mib):
-    session = Session(hostname=host, community=com, version=ver)
-    output = session.get(mib)
+def poll(hostName, communityString, snmpVersion, oid):
+    session = Session(hostname=hostName, community=communityString, version=snmpVersion)
+    output = session.get(oid)
+    print(output.value)
     with open('results.csv', 'a') as results:
-        resultscsv = csv.writer(results)
-        resultscsv.writerow([datetime.now(), host, mib, output.value])
+        resultCsv = csv.writer(results)
+        resultCsv.writerow([datetime.now(), host, oid, output.value])
 
 
 with open('inventory.csv') as inventory:
-    invcsv = csv.reader(inventory)
-    for row in invcsv:
+    csvData = csv.reader(inventory)
+    for row in csvData:
         host = row[0]
         freq = int(row[1])
         com = row[2]
         ver = int(row[3])
-        for mib in row[4:]:
-            poll(host, com, ver, mib)
-            # schedule.every(freq).seconds.do(poll, host, com, ver, mib)
+        for objectId in row[4:]:
+            schedule.every(freq).seconds.do(poll, host, com, ver, objectId)
 
-# while True:
-#     schedule.run_pending()
-#     time.sleep(1)
-
+while True:
+    schedule.run_pending()
+    time.sleep(1)
