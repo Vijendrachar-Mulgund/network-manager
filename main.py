@@ -8,14 +8,14 @@ from datetime import datetime
 def poll(hostName, communityString, snmpVersion, oid):
     session = Session(hostname=hostName, community=communityString, version=snmpVersion)
     output = session.get(oid)
-    print(output.value)
-    with open('results.csv', 'a') as results:
-        resultCsv = csv.writer(results)
+    print(f"{datetime.now()} => {hostName} => {oid} => {output.value} ")
+    with open('logs.csv', 'a') as logs:
+        resultCsv = csv.writer(logs)
         resultCsv.writerow([datetime.now(), host, oid, output.value])
 
 
-with open('inventory.csv') as inventory:
-    csvData = csv.reader(inventory)
+with open('data.csv') as data:
+    csvData = csv.reader(data)
     for row in csvData:
         host = row[0]
         freq = int(row[1])
