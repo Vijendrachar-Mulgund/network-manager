@@ -3,4 +3,6 @@ include
 lib
 .idea
 
+logs.csv
+data.csv
 pyvenv.cfg
