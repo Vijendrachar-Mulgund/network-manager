@@ -97,12 +97,15 @@ def getSystemBandwidth(ipAddress, interface):
             break
 
 
-# Get the total number of  IP  Errors
-# To Determine "Drop" packets
-def getIpReceives(ipAddress):
+# Get the total number of IP Receives and calculate delay
+# To Determine "Delay" packets
+# Use "Throttle" to test the scenario
+def getIpDelay(ipAddress):
     # Ques for the graph
     timeStamps = deque(maxlen=10)
     data = deque(maxlen=10)
+
+    ipInReceivesCount = []
 
     while True:
         try:
@@ -114,10 +117,16 @@ def getIpReceives(ipAddress):
 
             timeStamps.append(getCurrentTime())
 
+            ipInReceivesCount.append(inReceives.value)
+
+            initial = int(ipInReceivesCount[-2] if len(ipInReceivesCount) >= 2 else 0)
+            final = int(ipInReceivesCount[-1] if len(ipInReceivesCount) >= 1 else 0)
+
+            print(f"initial => {initial}, final => {final}")
+
+            # Calculate the delay
             if inReceives is not None:
-                data.append(int(inReceives.value))
-            else:
-                data.append(0)
+                data.append(final - initial)
 
             # Plot the graph
             plt.plot(timeStamps, data)
