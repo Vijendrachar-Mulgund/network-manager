@@ -1,6 +1,6 @@
 import sys
 import time
-from easysnmp import Session
+from easysnmp import Session, EasySNMPTimeoutError
 from datetime import datetime
 from collections import deque
 import matplotlib.pyplot as plt
@@ -15,6 +15,7 @@ SNMP_SYSTEM_UPTIME = '1.3.6.1.2.1.1.3.0'
 SNMP_IF_IN_OCTETS = '1.3.6.1.2.1.2.2.1.10'
 SNMP_IF_OUT_OCTETS = '1.3.6.1.2.1.2.2.1.16'
 SNMP_IF_SPEED = '1.3.6.1.2.1.2.2.1.5'
+SNMP_IP_IN_RECEIVES = '1.3.6.1.2.1.4.3.0'
 
 
 def getCurrentTime():
@@ -39,7 +40,7 @@ def getSystemUpTime(ipAddress):
             session = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
             upTime = session.get(SNMP_SYSTEM_UPTIME)
             timeStamps.append(getCurrentTime())
-            data.append(upTime.value)
+            data.append(int(upTime.value))
 
             # Plot the graph
             plt.plot(timeStamps, data)
@@ -49,7 +50,7 @@ def getSystemUpTime(ipAddress):
             plt.clf()
 
         except Exception as error:
-            print("An error occurred ", error)
+            print("An error occurred: ", error)
             break
 
 
@@ -79,7 +80,7 @@ def getSystemBandwidth(ipAddress, interface):
             # Bandwidth calculation
             bandwidth = ((lastEle - lastSecondEle) * 800) / int(speed.value)
 
-            print(f"ifInOctets => {inOctets.value}, ifSpeed => {speed.value}")
+            print(f"ifInOctets => {inOctets.value}, ifSpeed => {speed.value}, {type(bandwidth)}")
 
             timeStamps.append(getCurrentTime())
             data.append(bandwidth)
@@ -92,7 +93,46 @@ def getSystemBandwidth(ipAddress, interface):
             plt.clf()
 
         except Exception as error:
-            print("An error occurred ", error)
+            print("An error occurred: ", error)
+            break
+
+
+# Get the total number of  IP  Errors
+# To Determine "Drop" packets
+def getIpReceives(ipAddress):
+    # Ques for the graph
+    timeStamps = deque(maxlen=10)
+    data = deque(maxlen=10)
+
+    while True:
+        try:
+            # Make an SNMP query to fetch the data
+            sessionIr = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
+            inReceives = sessionIr.get(SNMP_IP_IN_RECEIVES)
+
+            print(f"ipInReceives => {inReceives.value}")
+
+            timeStamps.append(getCurrentTime())
+
+            if inReceives is not None:
+                data.append(int(inReceives.value))
+            else:
+                data.append(0)
+
+            # Plot the graph
+            plt.plot(timeStamps, data)
+            plt.draw()
+            # Sleep for the given time and repeat
+            plt.pause(SCHEDULE_FREQUENCY)
+            plt.clf()
+
+        except EasySNMPTimeoutError as e:
+            timeStamps.append(getCurrentTime())
+            data.append(0)
+            print('Error: ', e)
+
+        except Exception as error:
+            print("An error occurred: ", error)
             break
 
 
