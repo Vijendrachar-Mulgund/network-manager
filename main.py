@@ -77,9 +77,12 @@ def getSystemUpTime(ipAddress):
             session = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
             upTime = session.get(SNMP_SYSTEM_UPTIME)
             timeStamps.append(getCurrentTime())
-            data.append(int(upTime.value))
+            data.append(upTime.value)
 
             # Plot the graph
+            plt.title('System Up time')
+            plt.xlabel('Time ->')
+            plt.ylabel('Up time in milliseconds ->')
             plt.plot(timeStamps, data)
             plt.draw()
             # Sleep for the given time and repeat
@@ -123,6 +126,9 @@ def getSystemBandwidth(ipAddress, interface):
             data.append(bandwidth)
 
             # Plot the graph
+            plt.title('Interface bandwidth usage')
+            plt.xlabel('Time ->')
+            plt.ylabel('Usage in Bytes -> ')
             plt.plot(timeStamps, data)
             plt.draw()
             # Sleep for the given time and repeat
@@ -166,6 +172,9 @@ def getIpDelay(ipAddress):
                 data.append(final - initial)
 
             # Plot the graph
+            plt.title('Packet Queuing delay')
+            plt.xlabel('Time ->')
+            plt.ylabel('Delay ->')
             plt.plot(timeStamps, data)
             plt.draw()
             # Sleep for the given time and repeat
