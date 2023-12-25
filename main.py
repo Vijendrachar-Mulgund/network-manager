@@ -1,9 +1,9 @@
 import sys
-import time
+import tkinter as tk
+import matplotlib.pyplot as plt
 from easysnmp import Session, EasySNMPTimeoutError
 from datetime import datetime
 from collections import deque
-import matplotlib.pyplot as plt
 
 # Constants
 COMMUNITY_STRING = 'public'
@@ -17,7 +17,28 @@ SNMP_IF_OUT_OCTETS = '1.3.6.1.2.1.2.2.1.16'
 SNMP_IF_SPEED = '1.3.6.1.2.1.2.2.1.5'
 SNMP_IP_IN_RECEIVES = '1.3.6.1.2.1.4.3.0'
 
+SNMP_SYSTEM_DESCRIPTOR = '1.3.6.1.2.1.1.1.0'
+SNMP_SYSTEM_NAME = '1.3.6.1.2.1.1.5.0'
+SNMP_SYSTEM_OBJECT_ID = '1.3.6.1.2.1.1.2.0'
+SNMP_IF_DESCRIPTOR = '1.3.6.1.2.1.2.2.1.2'
+SNMP_IF_PHY_ADDRESS = '1.3.6.1.2.1.2.2.1.6'
+SNMP_IF_ADMIN_STATUS = '1.3.6.1.2.1.2.2.1.7'
+SNMP_IF_OPER_STATUS = '1.3.6.1.2.1.2.2.1.8'
 
+
+# Get the Operation status of an interface
+# Get the Admin status of the interface
+def getOperOrAdminStatus(status):
+    s = int(status)
+    if s == 1:
+        return "Up"
+    elif s == 2:
+        return "Down"
+    elif s == 3:
+        return "Testing"
+
+
+# Get current time and format to display "HH:MM:SS"
 def getCurrentTime():
     # Get the current time
     current_time = datetime.now().time()
@@ -26,6 +47,22 @@ def getCurrentTime():
     formatted_time = current_time.strftime("%H:%M:%S")
 
     return formatted_time
+
+
+def showInfo(infoTitle, infoText):
+    infoWindow = tk.Tk()
+    infoWindow.title(infoTitle)
+    print('func data', infoText)
+    # Add relevant information to the window
+    label = tk.Label(infoWindow, text=infoText)
+    label.pack(padx=40, pady=40)
+
+    # Add a button to close the window
+    close_button = tk.Button(infoWindow, text="Close", command=infoWindow.destroy)
+    close_button.pack(pady=10)
+
+    # Run the GUI event loop
+    infoWindow.mainloop()
 
 
 # Get The system uptime
@@ -145,6 +182,43 @@ def getIpDelay(ipAddress):
             break
 
 
+# Get the system information
+def getSystemInfo(ipAddress, interface):
+    infoParams = {
+        'sysDesc': SNMP_SYSTEM_DESCRIPTOR,
+        'sysName': SNMP_SYSTEM_NAME,
+        'ifDesc': f"{SNMP_IF_DESCRIPTOR}.{interface}",
+        'ifAdminStatus': f"{SNMP_IF_ADMIN_STATUS}.{interface}",
+        'ifOperStatus': f"{SNMP_IF_OPER_STATUS}.{interface}"
+    }
+
+    infoData = {}
+
+    try:
+        for key in infoParams:
+            # Make an SNMP query to fetch the data
+            sessionIn = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
+            info = sessionIn.get(infoParams[key])
+
+            if key == "ifAdminStatus" or key == "ifOperStatus":
+                infoData[key] = getOperOrAdminStatus(info.value)
+                print("Data => ", info.value)
+            else:
+                infoData[key] = info.value
+                print("info data => ", info.value)
+
+            print("final data ", infoData)
+
+        showInfo("System Information",
+                 f"System Description - {infoData['sysDesc']}\nSystem Name - {infoData['sysName']}\nInterface Description - {infoData['ifDesc']}")
+
+        showInfo("Interface Status",
+                 f"Interface Admin Status - {infoData['ifAdminStatus']}\nInterface Operation status - {infoData['ifOperStatus']}")
+    except Exception as error:
+        print("An error occurred: ", error)
+
+
+# Start of the program
 if __name__ == "__main__":
     try:
         args = sys.argv
