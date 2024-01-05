@@ -17,11 +17,9 @@ SNMP_IF_OUT_OCTETS = '1.3.6.1.2.1.2.2.1.16'
 SNMP_IF_SPEED = '1.3.6.1.2.1.2.2.1.5'
 SNMP_IP_IN_RECEIVES = '1.3.6.1.2.1.4.3.0'
 
-SNMP_SYSTEM_DESCRIPTOR = '1.3.6.1.2.1.1.1.0'
 SNMP_SYSTEM_NAME = '1.3.6.1.2.1.1.5.0'
-SNMP_SYSTEM_OBJECT_ID = '1.3.6.1.2.1.1.2.0'
+SNMP_SYSTEM_DESCRIPTOR = '1.3.6.1.2.1.1.1.0'
 SNMP_IF_DESCRIPTOR = '1.3.6.1.2.1.2.2.1.2'
-SNMP_IF_PHY_ADDRESS = '1.3.6.1.2.1.2.2.1.6'
 SNMP_IF_ADMIN_STATUS = '1.3.6.1.2.1.2.2.1.7'
 SNMP_IF_OPER_STATUS = '1.3.6.1.2.1.2.2.1.8'
 
@@ -52,7 +50,7 @@ def getCurrentTime():
 def showInfo(infoTitle, infoText):
     infoWindow = tk.Tk()
     infoWindow.title(infoTitle)
-    print('func data', infoText)
+    print(infoText)
     # Add relevant information to the window
     label = tk.Label(infoWindow, text=infoText)
     label.pack(padx=40, pady=40)
@@ -118,7 +116,7 @@ def getSystemBandwidth(ipAddress, interface):
             lastSecondEle = int(inOctetCount[-2] if len(inOctetCount) >= 2 else 0)
 
             # Bandwidth calculation
-            bandwidth = ((lastEle - lastSecondEle) * 800) / int(speed.value)
+            bandwidth = ((lastEle - lastSecondEle) * 800) / int(SCHEDULE_FREQUENCY) * int(speed.value)
 
             print(f"ifInOctets => {inOctets.value}, ifSpeed => {speed.value}, {type(bandwidth)}")
 
@@ -128,7 +126,7 @@ def getSystemBandwidth(ipAddress, interface):
             # Plot the graph
             plt.title('Interface bandwidth usage')
             plt.xlabel('Time ->')
-            plt.ylabel('Usage in Bytes -> ')
+            plt.ylabel('Usage in MegaBytes per second -> ')
             plt.plot(timeStamps, data)
             plt.draw()
             # Sleep for the given time and repeat
@@ -211,12 +209,9 @@ def getSystemInfo(ipAddress, interface):
 
             if key == "ifAdminStatus" or key == "ifOperStatus":
                 infoData[key] = getOperOrAdminStatus(info.value)
-                print("Data => ", info.value)
+
             else:
                 infoData[key] = info.value
-                print("info data => ", info.value)
-
-            print("final data ", infoData)
 
         showInfo("System Information",
                  f"System Description - {infoData['sysDesc']}\nSystem Name - {infoData['sysName']}\nInterface Description - {infoData['ifDesc']}")
