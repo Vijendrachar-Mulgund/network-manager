@@ -1,4 +1,5 @@
 import sys
+import csv
 import tkinter as tk
 import matplotlib.pyplot as plt
 from easysnmp import Session, EasySNMPTimeoutError
@@ -77,6 +78,12 @@ def getSystemUpTime(ipAddress):
             timeStamps.append(getCurrentTime())
             data.append(upTime.value)
 
+            # Write the data to the log file
+
+            with open(f'{ipAddress}.csv', 'a') as results:
+                results = csv.writer(results)
+                results.writerow([datetime.now(), SNMP_SYSTEM_UPTIME, upTime.value])
+
             # Plot the graph
             plt.title('System Up time')
             plt.xlabel('Time ->')
@@ -122,6 +129,12 @@ def getSystemBandwidth(ipAddress, interface):
 
             timeStamps.append(getCurrentTime())
             data.append(bandwidth)
+
+            with open(f'{ipAddress}.csv', 'a') as results:
+                results = csv.writer(results)
+                results.writerow([datetime.now(), SNMP_IF_IN_OCTETS, inOctets.value])
+                results.writerow([datetime.now(), SNMP_IF_SPEED, speed.value])
+                results.writerow([datetime.now(), 'bandwidth', bandwidth])
 
             # Plot the graph
             plt.title('Interface bandwidth usage')
@@ -169,10 +182,15 @@ def getIpDelay(ipAddress):
             if inReceives is not None:
                 data.append(final - initial)
 
+            with open(f'{ipAddress}.csv', 'a') as results:
+                results = csv.writer(results)
+                results.writerow([datetime.now(), SNMP_IP_IN_RECEIVES, inReceives.value])
+                results.writerow([datetime.now(), 'queued_datagrams', final - initial])
+
             # Plot the graph
             plt.title('Packet Queuing delay')
             plt.xlabel('Time ->')
-            plt.ylabel('Delay ->')
+            plt.ylabel('Number of Packets in queue ->')
             plt.plot(timeStamps, data)
             plt.draw()
             # Sleep for the given time and repeat
