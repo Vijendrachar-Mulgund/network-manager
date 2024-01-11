@@ -109,46 +109,49 @@ def getSystemBandwidth(ipAddress, interface):
     ifInOctet = f"{SNMP_IF_IN_OCTETS}.{interface}"
     ifSpeed = f"{SNMP_IF_SPEED}.{interface}"
 
-    while True:
-        try:
-            # Make an SNMP query to fetch the data
-            sessionIo = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
-            inOctets = sessionIo.get(ifInOctet)
+    with open(f'data/{ipAddress}_bandwidth.csv', 'a', newline='') as csvFileBandwidth:
+        fieldnamesBand = ["timestamp", "oid_if_in_octets_value", "oid_if_speed_value", "bandwidth"]
+        writerBandwidth = csv.DictWriter(csvFileBandwidth, fieldnames=fieldnamesBand)
 
-            sessionSp = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
-            speed = sessionSp.get(ifSpeed)
+        # Write header
+        writerBandwidth.writeheader()
 
-            inOctetCount.append(inOctets.value)
-            lastEle = int(inOctetCount[-1] if len(inOctetCount) >= 1 else 0)
-            lastSecondEle = int(inOctetCount[-2] if len(inOctetCount) >= 2 else 0)
+        while True:
+            try:
+                # Make an SNMP query to fetch the data
+                sessionIo = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
+                inOctets = sessionIo.get(ifInOctet)
 
-            # Bandwidth calculation
-            bandwidth = ((lastEle - lastSecondEle) * 800) / int(SCHEDULE_FREQUENCY) * int(speed.value)
+                sessionSp = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
+                speed = sessionSp.get(ifSpeed)
 
-            print(f"ifInOctets => {inOctets.value}, ifSpeed => {speed.value}, {type(bandwidth)}")
+                inOctetCount.append(inOctets.value)
+                lastEle = int(inOctetCount[-1] if len(inOctetCount) >= 2 else 0)
+                lastSecondEle = int(inOctetCount[-2] if len(inOctetCount) >= 2 else 0)
 
-            timeStamps.append(getCurrentTime())
-            data.append(bandwidth)
+                # Bandwidth calculation
+                bandwidth = ((lastEle - lastSecondEle) * 800) / int(SCHEDULE_FREQUENCY) * int(speed.value)
 
-            with open(f'{ipAddress}.csv', 'a') as results:
-                results = csv.writer(results)
-                results.writerow([datetime.now(), SNMP_IF_IN_OCTETS, inOctets.value])
-                results.writerow([datetime.now(), SNMP_IF_SPEED, speed.value])
-                results.writerow([datetime.now(), 'bandwidth', bandwidth])
+                print(f"ifInOctets => {inOctets.value}, ifSpeed => {speed.value}, {type(bandwidth)}")
 
-            # Plot the graph
-            plt.title('Interface bandwidth usage')
-            plt.xlabel('Time ->')
-            plt.ylabel('Usage in MegaBytes per second -> ')
-            plt.plot(timeStamps, data)
-            plt.draw()
-            # Sleep for the given time and repeat
-            plt.pause(SCHEDULE_FREQUENCY)
-            plt.clf()
+                timeStamps.append(getCurrentTime())
+                data.append(bandwidth)
 
-        except Exception as error:
-            print("An error occurred: ", error)
-            break
+                writerBandwidth.writerow({"timestamp": datetime.now(), "oid_if_in_octets_value": inOctets.value, "oid_if_speed_value": speed.value, 'bandwidth': bandwidth})
+
+                # Plot the graph
+                plt.title('Interface bandwidth usage')
+                plt.xlabel('Time ->')
+                plt.ylabel('Usage in MegaBytes per second -> ')
+                plt.plot(timeStamps, data)
+                plt.draw()
+                # Sleep for the given time and repeat
+                plt.pause(SCHEDULE_FREQUENCY)
+                plt.clf()
+
+            except Exception as error:
+                print("An error occurred: ", error)
+                break
 
 
 # Get the total number of IP Receives and calculate delay
@@ -162,7 +165,7 @@ def getIpDelay(ipAddress):
     ipInReceivesCount = []
 
     with open(f'data/{ipAddress}_ip_delay.csv', 'a', newline='') as csvFile:
-        fieldnames = ["Timestamp", "Object Identifiers", "Queued Datagrams"]
+        fieldnames = ["timestamp", "object_identifiers", "queued_datagrams"]
         writer = csv.DictWriter(csvFile, fieldnames=fieldnames)
 
         # Write header
@@ -187,7 +190,7 @@ def getIpDelay(ipAddress):
                 if inReceives is not None:
                     data.append(final - initial)
 
-                writer.writerow({"Timestamp": datetime.now(), "Object Identifiers": SNMP_IP_IN_RECEIVES, "Queued Datagrams": final - initial})
+                writer.writerow({"timestamp": datetime.now(), "object_identifiers": SNMP_IP_IN_RECEIVES, "queued_datagrams": final - initial})
 
                 # Plot the graph
                 plt.title('Packet Queuing delay')
