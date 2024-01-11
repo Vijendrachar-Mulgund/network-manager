@@ -161,50 +161,52 @@ def getIpDelay(ipAddress):
 
     ipInReceivesCount = []
 
-    while True:
-        try:
-            # Make an SNMP query to fetch the data
-            sessionIr = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
-            inReceives = sessionIr.get(SNMP_IP_IN_RECEIVES)
+    with open(f'data/{ipAddress}_ip_delay.csv', 'a', newline='') as csvFile:
+        fieldnames = ["Timestamp", "Object Identifiers", "Queued Datagrams"]
+        writer = csv.DictWriter(csvFile, fieldnames=fieldnames)
 
-            print(f"ipInReceives => {inReceives.value}")
+        # Write header
+        writer.writeheader()
 
-            timeStamps.append(getCurrentTime())
+        while True:
+            try:
+                # Make an SNMP query to fetch the data
+                sessionIr = Session(hostname=ipAddress, community=COMMUNITY_STRING, version=SNMP_VERSION)
+                inReceives = sessionIr.get(SNMP_IP_IN_RECEIVES)
 
-            ipInReceivesCount.append(inReceives.value)
+                print(f"ipInReceives => {inReceives.value}")
 
-            initial = int(ipInReceivesCount[-2] if len(ipInReceivesCount) >= 2 else 0)
-            final = int(ipInReceivesCount[-1] if len(ipInReceivesCount) >= 1 else 0)
+                timeStamps.append(getCurrentTime())
 
-            print(f"initial => {initial}, final => {final}")
+                ipInReceivesCount.append(inReceives.value)
 
-            # Calculate the delay
-            if inReceives is not None:
-                data.append(final - initial)
+                initial = int(ipInReceivesCount[-2] if len(ipInReceivesCount) >= 2 else 0)
+                final = int(ipInReceivesCount[-1] if len(ipInReceivesCount) >= 2 else 0)
 
-            with open(f'{ipAddress}.csv', 'a') as results:
-                results = csv.writer(results)
-                results.writerow([datetime.now(), SNMP_IP_IN_RECEIVES, inReceives.value])
-                results.writerow([datetime.now(), 'queued_datagrams', final - initial])
+                # Calculate the delay
+                if inReceives is not None:
+                    data.append(final - initial)
 
-            # Plot the graph
-            plt.title('Packet Queuing delay')
-            plt.xlabel('Time ->')
-            plt.ylabel('Number of Packets in queue ->')
-            plt.plot(timeStamps, data)
-            plt.draw()
-            # Sleep for the given time and repeat
-            plt.pause(SCHEDULE_FREQUENCY)
-            plt.clf()
+                writer.writerow({"Timestamp": datetime.now(), "Object Identifiers": SNMP_IP_IN_RECEIVES, "Queued Datagrams": final - initial})
 
-        except EasySNMPTimeoutError as e:
-            timeStamps.append(getCurrentTime())
-            data.append(0)
-            print('Error: ', e)
+                # Plot the graph
+                plt.title('Packet Queuing delay')
+                plt.xlabel('Time ->')
+                plt.ylabel('Number of Packets in queue ->')
+                plt.plot(timeStamps, data)
+                plt.draw()
+                # Sleep for the given time and repeat
+                plt.pause(SCHEDULE_FREQUENCY)
+                plt.clf()
 
-        except Exception as error:
-            print("An error occurred: ", error)
-            break
+            except EasySNMPTimeoutError as e:
+                timeStamps.append(getCurrentTime())
+                data.append(0)
+                print('Error: ', e)
+
+            except Exception as error:
+                print("An error occurred: ", error)
+                break
 
 
 # Get the system information
